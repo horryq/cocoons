@@ -23,7 +23,7 @@ public class ActorTest {
 			public void test(String abc) {
 				System.out.println("Pong:" + abc);
 				getSender().send(getSelfName(),
-						new MessageEntity("test", "World"));
+						new MessageEntity("test", "Hello"));
 			}
 		});
 
