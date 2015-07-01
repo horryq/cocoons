@@ -14,12 +14,43 @@ public abstract class Actor {
 	private String name;
 	private LinkedBlockingQueue<ActorMessage> msgList = new LinkedBlockingQueue<>();
 
+	private ActorSystem system;
+
 	private boolean finished = false;
 
-	public final void dispatch() {
+	private ActorMessage lastMessage;
+
+	public void setContext(String name, ActorSystem system) {
+		this.name = name;
+		this.system = system;
+	}
+
+	public ActorSystem getSystem() {
+		return system;
+	}
+
+	public ActorRef getSender() {
+		if (lastMessage != null) {
+			return system.getActorRefOf(lastMessage.getSender());
+		}
+		return null;
+	}
+
+	public String getSelfName() {
+		return name;
+	}
+
+	public ActorRef getSelf() {
+		return system.getActorRefOf(name);
+	}
+
+	public final boolean dispatch() {
+		boolean hasMessage = false;
 		for (;;) {
 			ActorMessage msg = null;
 			if ((msg = msgList.poll()) != null) {
+				hasMessage = true;
+				lastMessage = msg;
 				MessageEntity entity = msg.getMsg();
 				String funcName = entity.getFuncName();
 				Object[] params = entity.getParams();
@@ -34,6 +65,7 @@ public abstract class Actor {
 				try {
 					Method method = getClass().getDeclaredMethod(funcName,
 							clazz);
+					method.setAccessible(true);
 					method.invoke(this, params);
 				} catch (NoSuchMethodException e) {
 					e.printStackTrace();
@@ -50,6 +82,7 @@ public abstract class Actor {
 				break;
 			}
 		}
+		return hasMessage;
 	}
 
 	public final void addMessage(ActorMessage msg) {

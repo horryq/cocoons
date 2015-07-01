@@ -12,14 +12,15 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author qinguofeng
  */
 public class ActorSystem {
+	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
 	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
 	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
 
 	private void doWork() {
 		for (;;) {
 			try {
-				System.out.println("dispatch in "
-						+ Thread.currentThread().getId());
+				// System.out.println("dispatch in "
+				// + Thread.currentThread().getId());
 				Actor actor = actors.take();
 				try {
 					if (actor != null) {
@@ -28,6 +29,7 @@ public class ActorSystem {
 				} finally {
 					actors.add(actor);
 				}
+				// TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -35,9 +37,16 @@ public class ActorSystem {
 	}
 
 	public ActorRef actor(String name, Actor actor) {
+		actor.setContext(name, this);
 		actorsMap.put(name, actor);
 		actors.add(actor);
-		return new ActorRef(name, this);
+		ActorRef ref = new ActorRef(name, this);
+		actorsRefMap.put(name, ref);
+		return ref;
+	}
+
+	public ActorRef getActorRefOf(String name) {
+		return actorsRefMap.get(name);
 	}
 
 	public void sendMsgTo(String name, ActorMessage msg) {

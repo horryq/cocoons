@@ -57,32 +57,18 @@ public class ActorMessage {
 		this.sid = sid;
 	}
 
-	/**
-	 * @return the sender
-	 */
 	public String getSender() {
 		return sender;
 	}
 
-	/**
-	 * @param sender
-	 *            the sender to set
-	 */
 	public void setSender(String sender) {
 		this.sender = sender;
 	}
 
-	/**
-	 * @return the receiver
-	 */
 	public String getReceiver() {
 		return receiver;
 	}
 
-	/**
-	 * @param receiver
-	 *            the receiver to set
-	 */
 	public void setReceiver(String receiver) {
 		this.receiver = receiver;
 	}
