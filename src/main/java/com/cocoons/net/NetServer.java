@@ -31,7 +31,7 @@ public class NetServer {
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.childHandler(channelHandler);
 
-		return null;
+		return server.bind(port);
 	}
 
 }

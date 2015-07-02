@@ -1,11 +1,14 @@
 package com.cocoons.actor;
 
+import java.text.MessageFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import com.cocoons.harbor.HarborServer;
 
 /**
  *
@@ -15,6 +18,13 @@ public class ActorSystem {
 	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
 	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
 	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+
+	private String systemName;
+	private String harborName;
+
+	public ActorSystem(String name) {
+		this.systemName = name;
+	}
 
 	private void doWork() {
 		for (;;) {
@@ -36,7 +46,13 @@ public class ActorSystem {
 		}
 	}
 
+	private String wrapActorName(String actorName) {
+		return MessageFormat.format("{0}:{1}", systemName, actorName);
+	}
+
 	public ActorRef actor(String name, Actor actor) {
+		name = wrapActorName(name);
+
 		actor.setContext(name, this);
 		actorsMap.put(name, actor);
 		actors.add(actor);
@@ -45,20 +61,58 @@ public class ActorSystem {
 		return ref;
 	}
 
+	public ActorRef remoteActorOf(String remoteName) {
+		ActorRef ref = actorsRefMap.get(remoteName);
+		if (ref == null) {
+			ref = new ActorRef(remoteName, this);
+			actorsRefMap.put(remoteName, ref);
+		}
+		return ref;
+	}
+
+	private boolean isLocalActor(String name) {
+		final String systemNamePrefix = MessageFormat
+				.format("{0}:", systemName);
+		return name.startsWith(systemNamePrefix);
+	}
+
 	public ActorRef getActorRefOf(String name) {
-		return actorsRefMap.get(name);
+		if (name == null) {
+			return null;
+		}
+
+		ActorRef ref = actorsRefMap.get(name);
+		if (ref == null && !isLocalActor(name)) {
+			ref = remoteActorOf(name);
+		}
+		return ref;
 	}
 
 	public void sendMsgTo(String name, ActorMessage msg) {
-		Actor actor = actorsMap.get(name);
-		if (actor == null) {
-			throw new IllegalStateException(name + " actor not exist.");
+		if (isLocalActor(name)) { // local message
+			Actor actor = actorsMap.get(name);
+			if (actor == null) {
+				throw new IllegalStateException(name + " actor not exist.");
+			}
+			actor.addMessage(msg);
+		} else { // remote message
+			Actor harbor = actorsMap.get(harborName);
+			if (harbor == null) {
+				throw new IllegalStateException("no harbor started.");
+			}
+			harbor.addMessage(ActorMessage.wrapHarborMessage(harborName,
+					"sendRemote", msg));
 		}
-		actor.addMessage(msg);
 	}
 
 	public String getSid() {
 		return UUID.randomUUID().toString();
+	}
+
+	public void startHarborService(int port) {
+		harborName = wrapActorName(HarborServer.HARBOR);
+		ActorRef ref = actor(HarborServer.HARBOR, new HarborServer());
+		ref.send(null, new MessageEntity("startHarbor", port));
 	}
 
 	public void start(int threadNum) {

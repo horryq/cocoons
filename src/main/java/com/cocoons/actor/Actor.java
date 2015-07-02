@@ -6,11 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.log4j.Logger;
+
 /**
- *
  * @author qinguofeng
  */
 public abstract class Actor {
+	private static final Logger logger = Logger.getLogger(Actor.class);
+
 	private String name;
 	private LinkedBlockingQueue<ActorMessage> msgList = new LinkedBlockingQueue<>();
 
@@ -46,7 +49,8 @@ public abstract class Actor {
 
 	public final boolean dispatch() {
 		boolean hasMessage = false;
-		for (;;) {
+		int count = msgList.size();
+		for (int i = 0; i < count; i++) {
 			ActorMessage msg = null;
 			if ((msg = msgList.poll()) != null) {
 				hasMessage = true;
@@ -63,12 +67,32 @@ public abstract class Actor {
 				Class<?>[] clazz = clazzList.size() <= 0 ? null : clazzList
 						.toArray(new Class<?>[0]);
 				try {
-					Method method = getClass().getDeclaredMethod(funcName,
-							clazz);
+					// TODO ... optimize...
+					Method method = null;
+					try {
+						method = getClass().getDeclaredMethod(funcName, clazz);
+					} catch (NoSuchMethodException e) {
+						logger.warn("no method match accurate with name "
+								+ funcName + " in " + getClass().getName());
+					}
+					if (method == null) {
+						Method[] ms = getClass().getMethods();
+						if (ms != null) {
+							for (Method m : ms) {
+								if (m.getName().equals(funcName)) {
+									method = m;
+									break;
+								}
+							}
+						}
+					}
+					if (method == null) {
+						throw new IllegalStateException("No Function named "
+								+ funcName + " in class "
+								+ this.getClass().getName());
+					}
 					method.setAccessible(true);
 					method.invoke(this, params);
-				} catch (NoSuchMethodException e) {
-					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
 				} catch (IllegalAccessException e) {
@@ -87,5 +111,9 @@ public abstract class Actor {
 
 	public final void addMessage(ActorMessage msg) {
 		msgList.add(msg);
+	}
+
+	public final void giveBackMessage() {
+		msgList.add(lastMessage);
 	}
 }
