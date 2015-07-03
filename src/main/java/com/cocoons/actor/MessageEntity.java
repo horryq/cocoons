@@ -10,6 +10,9 @@ public class MessageEntity implements java.io.Serializable {
 	private String funcName;
 	private Object[] params;
 
+	public MessageEntity() {
+	}
+
 	public MessageEntity(String funcName, Object... params) {
 		this.funcName = funcName;
 		this.params = params;

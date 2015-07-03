@@ -14,7 +14,6 @@ import java.util.List;
 import com.cocoons.net.NetServer;
 
 /**
- *
  * @author qinguofeng
  */
 public class ActorNetServer {
@@ -40,13 +39,13 @@ public class ActorNetServer {
 		return server.start(bossNum, workerNum, port, backlog);
 	}
 
-	class ActorChannelHandlerInitializer extends
+	static class ActorChannelHandlerInitializer extends
 			ChannelInitializer<SocketChannel> {
 		private EventExecutorGroup executorGroup;
 		private ChannelHandler[] channelHandlers;
 
 		public ActorChannelHandlerInitializer(EventExecutorGroup executorGroup,
-				ChannelHandler... handlers) {
+				ChannelHandler[] handlers) {
 			this.executorGroup = executorGroup;
 			this.channelHandlers = handlers;
 		}
@@ -54,8 +53,8 @@ public class ActorNetServer {
 		@Override
 		protected void initChannel(SocketChannel ch) throws Exception {
 			ChannelPipeline pipeline = ch.pipeline();
-			pipeline.addLast(new ActorAvroDecoder());
-			pipeline.addLast(new ActorAvroEncoder());
+			pipeline.addLast(new HarborMsgDecoder());
+			pipeline.addLast(new HarborMsgEncoder());
 			if (executorGroup != null) {
 				pipeline.addLast(executorGroup, channelHandlers);
 			} else {

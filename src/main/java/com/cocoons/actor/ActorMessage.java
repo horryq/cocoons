@@ -18,6 +18,9 @@ public class ActorMessage {
 
 	private MessageEntity msg;
 
+	public ActorMessage() {
+	}
+
 	public ActorMessage(int type, String sid, String sender, String receiver,
 			MessageEntity msg) {
 		this.type = type;
@@ -88,4 +91,9 @@ public class ActorMessage {
 		this.msg = msg;
 	}
 
+	public static ActorMessage wrapHarborMessage(String harborName,
+			String funcName, ActorMessage msg) {
+		return new ActorMessage(TYPE.TREQ, msg.getSid(), msg.getSender(),
+				harborName, new MessageEntity(funcName, msg));
+	}
 }
