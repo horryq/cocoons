@@ -21,6 +21,7 @@ import com.cocoons.common.Constants;
  */
 public class HarborServer extends Actor {
 	public static final String HARBOR = "harbor";
+	// TODO ... harbor 中断线等各种异常的处理
 
 	private static final Logger logger = Logger.getLogger(HarborServer.class);
 
