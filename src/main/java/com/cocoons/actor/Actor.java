@@ -72,8 +72,8 @@ public abstract class Actor {
 					try {
 						method = getClass().getDeclaredMethod(funcName, clazz);
 					} catch (NoSuchMethodException e) {
-						logger.warn("no method match accurate with name "
-								+ funcName + " in " + getClass().getName());
+//						logger.warn("no method match accurate with name "
+//								+ funcName + " in " + getClass().getName());
 					}
 					if (method == null) {
 						Method[] ms = getClass().getMethods();
