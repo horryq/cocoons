@@ -53,7 +53,9 @@ public abstract class Actor {
 		for (int i = 0; i < count; i++) {
 			ActorMessage msg = null;
 			if ((msg = msgList.poll()) != null) {
-				hasMessage = true;
+				if (!hasMessage) {
+					hasMessage = true;
+				}
 				lastMessage = msg;
 				MessageEntity entity = msg.getMsg();
 				String funcName = entity.getFuncName();

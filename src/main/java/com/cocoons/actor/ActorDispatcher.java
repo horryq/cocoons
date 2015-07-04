@@ -1,6 +1,7 @@
 package com.cocoons.actor;
 
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * @author qinguofeng
@@ -18,17 +19,22 @@ public class ActorDispatcher implements Runnable {
 
 	@Override
 	public void run() {
+		int index = 0;
+		boolean hasmsg = false;
 		for (;;) {
 			try {
-				Actor actor = actors.take();
-				try {
-					if (actor != null) {
-						actor.dispatch();
+				Actor actor = actors.poll();
+				if (actor != null) {
+					try {
+						hasmsg = actor.dispatch() || hasmsg;
+					} finally {
+						actors.add(actor);
 					}
-				} finally {
-					actors.add(actor);
 				}
-				// TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
+				if (((index++ & 7) == 0) && !hasmsg) {
+					hasmsg = false;
+					LockSupport.parkNanos(1L);
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
