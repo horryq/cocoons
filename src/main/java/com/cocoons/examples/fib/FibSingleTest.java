@@ -7,7 +7,7 @@ import com.esotericsoftware.minlog.Log;
 public class FibSingleTest {
 	static final Logger logger = Logger.getLogger(FibSingleTest.class);
 	
-	static final int COUNT = 1000;
+	static final int COUNT = 1000000;
 
 	public static int dofib(int n) {
 		if (n == 0) {
@@ -20,13 +20,13 @@ public class FibSingleTest {
 
 	public static void fib(int n) {
 		int res = dofib(n);
-		logger.debug(System.currentTimeMillis() + ":" + res);
+//		logger.debug(System.currentTimeMillis() + ":" + res);
 	}
 
 	public static void main(String[] args) {
 		long start = System.currentTimeMillis();
 		for (int i = 0; i < COUNT; i++) {
-			fib(36);
+			fib(10);
 		}
 		long end = System.currentTimeMillis();
 		Log.warn("total:" + (end - start));
