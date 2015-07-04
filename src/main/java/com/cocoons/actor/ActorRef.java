@@ -23,7 +23,7 @@ public class ActorRef {
 	public void send(String sender, MessageEntity msg) {
 		ActorMessage actorMsg = new ActorMessage(TYPE.TREQ, system.getSid(),
 				sender, name, msg);
-		system.sendMsgTo(name, actorMsg);
+		system.sendMsgTo(actorMsg);
 	}
 
 	public void response() {

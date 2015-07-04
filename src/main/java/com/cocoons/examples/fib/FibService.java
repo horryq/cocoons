@@ -3,6 +3,7 @@ package com.cocoons.examples.fib;
 import org.apache.log4j.Logger;
 
 import com.cocoons.actor.Actor;
+import com.cocoons.actor.MessageEntity;
 
 public class FibService extends Actor {
 	static final Logger logger = Logger.getLogger(FibService.class);
@@ -18,6 +19,7 @@ public class FibService extends Actor {
 
 	public void fib(int n) {
 		int res = dofib(n);
-		logger.debug(System.currentTimeMillis() + ":" + res);
+//		logger.debug(System.currentTimeMillis() + ":" + res);
+		getSender().send(getSelfName(), new MessageEntity("count"));
 	}
 }

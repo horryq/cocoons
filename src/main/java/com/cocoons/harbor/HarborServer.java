@@ -37,7 +37,7 @@ public class HarborServer extends Actor {
 	}
 
 	public void dispatchHarborMessage(ActorMessage msg) {
-		getSystem().sendMsgTo(msg.getReceiver(), msg);
+		getSystem().sendMsgTo(msg);
 	}
 
 	public void sendRemote(ActorMessage msg) {
@@ -76,7 +76,6 @@ public class HarborServer extends Actor {
 	public void dispatchConnectedClient(String key,
 			ChannelHandlerContext client, boolean remove) {
 		getSystem().sendMsgTo(
-				getSelfName(),
 				new ActorMessage(ActorMessage.TYPE.TREQ, null, getSelfName(),
 						getSelfName(), new MessageEntity(
 								remove ? "removeConnectedClient"

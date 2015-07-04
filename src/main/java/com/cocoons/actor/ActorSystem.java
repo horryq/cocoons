@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.LockSupport;
 
 import com.cocoons.harbor.HarborServer;
 
@@ -15,35 +16,16 @@ import com.cocoons.harbor.HarborServer;
  * @author qinguofeng
  */
 public class ActorSystem {
+	// private int threadNum = 0;
+
 	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
-	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
-	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+	private Dispatcher dispatcher;
 
 	private String systemName;
 	private String harborName;
 
 	public ActorSystem(String name) {
 		this.systemName = name;
-	}
-
-	private void doWork() {
-		for (;;) {
-			try {
-				// System.out.println("dispatch in "
-				// + Thread.currentThread().getId());
-				Actor actor = actors.take();
-				try {
-					if (actor != null) {
-						actor.dispatch();
-					}
-				} finally {
-					actors.add(actor);
-				}
-				// TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 	private String wrapActorName(String actorName) {
@@ -54,8 +36,7 @@ public class ActorSystem {
 		name = wrapActorName(name);
 
 		actor.setContext(name, this);
-		actorsMap.put(name, actor);
-		actors.add(actor);
+		dispatcher.addActor(name, actor);
 		ActorRef ref = new ActorRef(name, this);
 		actorsRefMap.put(name, ref);
 		return ref;
@@ -88,21 +69,8 @@ public class ActorSystem {
 		return ref;
 	}
 
-	public void sendMsgTo(String name, ActorMessage msg) {
-		if (isLocalActor(name)) { // local message
-			Actor actor = actorsMap.get(name);
-			if (actor == null) {
-				throw new IllegalStateException(name + " actor not exist.");
-			}
-			actor.addMessage(msg);
-		} else { // remote message
-			Actor harbor = actorsMap.get(harborName);
-			if (harbor == null) {
-				throw new IllegalStateException("no harbor started.");
-			}
-			harbor.addMessage(ActorMessage.wrapHarborMessage(harborName,
-					"sendRemote", msg));
-		}
+	public void sendMsgTo(ActorMessage msg) {
+		dispatcher.sendMsg(msg);
 	}
 
 	public String getSid() {
@@ -116,9 +84,99 @@ public class ActorSystem {
 	}
 
 	public void start(int threadNum) {
-		ExecutorService executor = Executors.newFixedThreadPool(threadNum);
+		dispatcher = new Dispatcher(this, threadNum);
+		ActorDispatcher[] actorDispatcher = dispatcher.getActorDispatchers();
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		executor.submit(dispatcher);
+		ExecutorService actorExecutors = Executors
+				.newFixedThreadPool(threadNum);
 		for (int i = 0; i < threadNum; i++) {
-			executor.submit(this::doWork);
+			actorExecutors.submit(actorDispatcher[i]);
+		}
+	}
+
+	static class Dispatcher implements Runnable {
+		private ActorSystem system;
+		private int cursor = 0;
+		private int threadNum;
+		private int threadMask;
+		private ActorDispatcher[] dispatchers;
+		private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+		private LinkedBlockingQueue<ActorMessage> msgQueue = new LinkedBlockingQueue<>();
+		private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
+
+		public Dispatcher(ActorSystem system, int threadNum) {
+			this.system = system;
+			this.threadNum = threadNum;
+			this.threadMask = threadNum - 1;
+			dispatchers = new ActorDispatcher[threadNum];
+			for (int i = 0; i < threadNum; i++) {
+				dispatchers[i] = new ActorDispatcher(
+						new LinkedBlockingQueue<>());
+			}
+		}
+
+		public void sendMsg(ActorMessage msg) {
+			msgQueue.add(msg);
+		}
+
+		public void addActor(String name, Actor actor) {
+			actorsMap.put(name, actor);
+			actors.add(actor);
+		}
+
+		private boolean dispatchActors() {
+			Actor actor = null;
+			boolean hasActor = false;
+			while ((actor = actors.poll()) != null) {
+				dispatchers[cursor++ & threadMask].addActor(actor);
+				if (!hasActor) {
+					hasActor = true;
+				}
+			}
+			return hasActor;
+		}
+
+		private boolean dispatchActorMsgs() {
+			ActorMessage msg = null;
+			boolean hasMsg = false;
+			while ((msg = msgQueue.poll()) != null) {
+				String name = msg.getReceiver();
+				if (system.isLocalActor(name)) { // local message
+					Actor actor = actorsMap.get(name);
+					if (actor == null) {
+						throw new IllegalStateException(name
+								+ " actor not exist.");
+					}
+					actor.addMessage(msg);
+				} else { // remote message
+					Actor harbor = actorsMap.get(system.harborName);
+					if (harbor == null) {
+						throw new IllegalStateException("no harbor started.");
+					}
+					harbor.addMessage(ActorMessage.wrapHarborMessage(
+							system.harborName, "sendRemote", msg));
+				}
+				if (!hasMsg) {
+					hasMsg = true;
+				}
+			}
+			return hasMsg;
+		}
+
+		public ActorDispatcher[] getActorDispatchers() {
+			return dispatchers;
+		}
+
+		@Override
+		public void run() {
+			for (;;) {
+				boolean hasactor = dispatchActors();
+				boolean hasmsg = dispatchActorMsgs();
+				if (!hasactor && !hasmsg) {
+					LockSupport.parkNanos(1L);
+				}
+			}
 		}
 	}
 }
