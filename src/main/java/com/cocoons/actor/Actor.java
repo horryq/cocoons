@@ -3,7 +3,9 @@ package com.cocoons.actor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
@@ -16,6 +18,7 @@ public abstract class Actor {
 
 	private String name;
 	private LinkedBlockingQueue<ActorMessage> msgList = new LinkedBlockingQueue<>();
+	private Map<String, Method> methodMap = new HashMap<>();
 
 	private ActorSystem system;
 
@@ -58,38 +61,44 @@ public abstract class Actor {
 				MessageEntity entity = msg.getMsg();
 				String funcName = entity.getFuncName();
 				Object[] params = entity.getParams();
-				List<Class<?>> clazzList = new ArrayList<Class<?>>();
-				if (params != null) {
-					for (Object obj : params) {
-						clazzList.add(obj.getClass());
-					}
-				}
-				Class<?>[] clazz = clazzList.size() <= 0 ? null : clazzList
-						.toArray(new Class<?>[0]);
+				Method method = methodMap.get(funcName);
 				try {
-					// TODO ... optimize...
-					Method method = null;
-					try {
-						method = getClass().getDeclaredMethod(funcName, clazz);
-					} catch (NoSuchMethodException e) {
-//						logger.warn("no method match accurate with name "
-//								+ funcName + " in " + getClass().getName());
-					}
 					if (method == null) {
-						Method[] ms = getClass().getMethods();
-						if (ms != null) {
-							for (Method m : ms) {
-								if (m.getName().equals(funcName)) {
-									method = m;
-									break;
+						List<Class<?>> clazzList = new ArrayList<Class<?>>();
+						if (params != null) {
+							for (Object obj : params) {
+								clazzList.add(obj.getClass());
+							}
+						}
+						Class<?>[] clazz = clazzList.size() <= 0 ? null
+								: clazzList.toArray(new Class<?>[0]);
+						// TODO ... optimize...
+						try {
+							method = getClass().getDeclaredMethod(funcName,
+									clazz);
+						} catch (NoSuchMethodException e) {
+							// logger.warn("no method match accurate with name "
+							// + funcName + " in " + getClass().getName());
+						}
+						if (method == null) {
+							Method[] ms = getClass().getMethods();
+							if (ms != null) {
+								for (Method m : ms) {
+									if (m.getName().equals(funcName)) {
+										method = m;
+										break;
+									}
 								}
 							}
 						}
-					}
-					if (method == null) {
-						throw new IllegalStateException("No Function named "
-								+ funcName + " in class "
-								+ this.getClass().getName());
+						if (method == null) {
+							throw new IllegalStateException(
+									"No Function named " + funcName
+											+ " in class "
+											+ this.getClass().getName());
+						} else {
+							methodMap.put(funcName, method);
+						}
 					}
 					method.setAccessible(true);
 					method.invoke(this, params);

@@ -6,7 +6,7 @@ import com.esotericsoftware.minlog.Log;
 
 public class FibSingleTest {
 	static final Logger logger = Logger.getLogger(FibSingleTest.class);
-	
+
 	static final int COUNT = 1000000;
 
 	public static int dofib(int n) {
@@ -20,13 +20,34 @@ public class FibSingleTest {
 
 	public static void fib(int n) {
 		int res = dofib(n);
-//		logger.debug(System.currentTimeMillis() + ":" + res);
+		// logger.debug(System.currentTimeMillis() + ":" + res);
+	}
+
+	public static void cacl(int num) {
+		for (int i = 0; i < num; i++) {
+			fib(10);
+		}
 	}
 
 	public static void main(String[] args) {
+		int threadCount = 1;
 		long start = System.currentTimeMillis();
-		for (int i = 0; i < COUNT; i++) {
-			fib(10);
+		Thread t[] = new Thread[threadCount];
+		for (int i = 0; i < threadCount; i++) {
+			t[i] = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					cacl(COUNT / threadCount);
+				}
+			});
+			t[i].start();
+		}
+		for (Thread it : t) {
+			try {
+				it.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		long end = System.currentTimeMillis();
 		Log.warn("total:" + (end - start));
