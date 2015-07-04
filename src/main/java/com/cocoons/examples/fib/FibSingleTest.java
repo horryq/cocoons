@@ -7,7 +7,7 @@ import com.esotericsoftware.minlog.Log;
 public class FibSingleTest {
 	static final Logger logger = Logger.getLogger(FibSingleTest.class);
 
-	static final int COUNT = 1000000;
+	static final int COUNT = 100000;
 
 	public static int dofib(int n) {
 		if (n == 0) {
@@ -25,7 +25,7 @@ public class FibSingleTest {
 
 	public static void cacl(int num) {
 		for (int i = 0; i < num; i++) {
-			fib(10);
+			fib(25);
 		}
 	}
 

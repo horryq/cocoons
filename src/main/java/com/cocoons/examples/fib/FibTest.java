@@ -10,7 +10,7 @@ import com.cocoons.actor.MessageEntity;
 public class FibTest {
 	static final Logger logger = Logger.getLogger(FibService.class);
 
-	static final int COUNT = 1000000;
+	static final int COUNT = 100000;
 
 	public static void main(String[] args) {
 		ActorSystem system = new ActorSystem("fibsystem");
@@ -36,7 +36,7 @@ public class FibTest {
 			public void startCount() {
 				for (int i = 0; i < COUNT; i++) {
 					refs[i & (actorcount - 1)].send(getSelfName(),
-							new MessageEntity("fib", 10));
+							new MessageEntity("fib", 25));
 				}
 				// System.out.println("start end....");
 			}
