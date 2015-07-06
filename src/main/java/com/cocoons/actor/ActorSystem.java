@@ -4,9 +4,8 @@ import java.text.MessageFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ForkJoinPool;
 
 import com.cocoons.harbor.HarborServer;
 
@@ -17,34 +16,37 @@ import com.cocoons.harbor.HarborServer;
 public class ActorSystem {
 	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
 	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
-	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+	private ConcurrentLinkedQueue<Actor> actors = new ConcurrentLinkedQueue<>();
 
 	private String systemName;
 	private String harborName;
 
-	public ActorSystem(String name) {
+	private java.util.concurrent.ForkJoinPool pool;
+
+	public ActorSystem(String name, int threadNum) {
 		this.systemName = name;
+		pool = new ForkJoinPool(threadNum);
 	}
 
-	private void doWork() {
-		for (;;) {
-			try {
-				// System.out.println("dispatch in "
-				// + Thread.currentThread().getId());
-				Actor actor = actors.take();
-				try {
-					if (actor != null) {
-						actor.dispatch();
-					}
-				} finally {
-					actors.add(actor);
-				}
-				// TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+	// private void doWork() {
+	// for (;;) {
+	// try {
+	// // System.out.println("dispatch in "
+	// // + Thread.currentThread().getId());
+	// Actor actor = actors.take();
+	// try {
+	// if (actor != null) {
+	// actor.dispatch();
+	// }
+	// } finally {
+	// actors.add(actor);
+	// }
+	// // TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
+	// } catch (InterruptedException e) {
+	// e.printStackTrace();
+	// }
+	// }
+	// }
 
 	private String wrapActorName(String actorName) {
 		return MessageFormat.format("{0}:{1}", systemName, actorName);
@@ -95,6 +97,9 @@ public class ActorSystem {
 				throw new IllegalStateException(name + " actor not exist.");
 			}
 			actor.addMessage(msg);
+			if (!actor.running()) {
+				pool.execute(actor);
+			}
 		} else { // remote message
 			Actor harbor = actorsMap.get(harborName);
 			if (harbor == null) {
@@ -102,6 +107,9 @@ public class ActorSystem {
 			}
 			harbor.addMessage(ActorMessage.wrapHarborMessage(harborName,
 					"sendRemote", msg));
+			if (!harbor.running()) {
+				pool.execute(harbor);
+			}
 		}
 	}
 
@@ -116,9 +124,9 @@ public class ActorSystem {
 	}
 
 	public void start(int threadNum) {
-		ExecutorService executor = Executors.newFixedThreadPool(threadNum);
-		for (int i = 0; i < threadNum; i++) {
-			executor.submit(this::doWork);
-		}
+		// ExecutorService executor = Executors.newFixedThreadPool(threadNum);
+		// for (int i = 0; i < threadNum; i++) {
+		// executor.submit(this::doWork);
+		// }
 	}
 }

@@ -11,7 +11,7 @@ import com.cocoons.common.Constants;
 public class Ping {
 	public static void main(String[] args) {
 		initURLMap();
-		ActorSystem system = new ActorSystem("PingSystem");
+		ActorSystem system = new ActorSystem("PingSystem", 4);
 		system.startHarborService(8999);
 		ActorRef pingRef = system.actor("Ping", new PingService());
 		ActorRef pongRef = system.remoteActorOf("PongSystem:Pong");

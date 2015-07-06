@@ -10,7 +10,7 @@ import com.cocoons.actor.MessageEntity;
  */
 public class ActorTest {
 	public static void main(String[] args) {
-		ActorSystem system = new ActorSystem("TestSystem");
+		ActorSystem system = new ActorSystem("TestSystem", 4);
 		ActorRef ping = system.actor("ping", new Actor() {
 			public void ping(String abc, String def) {
 				System.out.println(abc + def);
@@ -27,7 +27,14 @@ public class ActorTest {
 		});
 
 		ping.send(pong.getName(), new MessageEntity("ping", "Ping", "..."));
+		synchronized (system) {
+			try {
+				system.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 
-		system.start(4);
+		// system.start(4);
 	}
 }

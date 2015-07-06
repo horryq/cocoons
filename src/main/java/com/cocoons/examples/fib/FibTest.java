@@ -13,7 +13,7 @@ public class FibTest {
 	static final int COUNT = 100000;
 
 	public static void main(String[] args) {
-		ActorSystem system = new ActorSystem("fibsystem");
+		ActorSystem system = new ActorSystem("fibsystem", 4);
 		final int actorcount = 4;
 		ActorRef[] refs = new ActorRef[actorcount];
 		for (int i = 0; i < actorcount; i++) {
@@ -36,15 +36,23 @@ public class FibTest {
 			public void startCount() {
 				for (int i = 0; i < COUNT; i++) {
 					refs[i & (actorcount - 1)].send(getSelfName(),
-							new MessageEntity("fib", 25));
+							new MessageEntity("fib", 10));
 				}
 				// System.out.println("start end....");
 			}
 		});
 
-		system.start(4);
+//		system.start(4);
 		logger.warn("start:" + System.currentTimeMillis());
 
 		mainRef.send(null, new MessageEntity("startCount"));
+		
+		synchronized (system) {
+			try {
+				system.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
