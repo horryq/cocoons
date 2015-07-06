@@ -2,7 +2,6 @@ package com.cocoons.actor;
 
 import java.text.MessageFormat;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinPool;
@@ -114,7 +113,8 @@ public class ActorSystem {
 	}
 
 	public String getSid() {
-		return UUID.randomUUID().toString();
+//		return UUID.randomUUID().toString();
+		return "";
 	}
 
 	public void startHarborService(int port) {
