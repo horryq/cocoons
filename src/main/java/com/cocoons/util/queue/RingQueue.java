@@ -1,16 +1,6 @@
 package com.cocoons.util.queue;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.Set;
-
-import sun.misc.Unsafe;
-
-import com.cocoons.util.Sequence;
-import com.cocoons.util.UnsafeUtil;
-
+/*
 abstract class RingQueueLPad {
 	protected long p1, p2, p3, p4, p5, p6, p7;
 }
@@ -76,9 +66,9 @@ abstract class RingQueueFields<T> extends RingQueueLPad {
 	}
 }
 
-/**
+*//**
  * @author qinguofeng
- */
+ *//*
 // TODO ... unfinished
 public class RingQueue<T> extends RingQueueFields<T> implements Queue<T> {
 	private static final long INIT_CURSOR_VALUE = -1L;
@@ -274,21 +264,42 @@ public class RingQueue<T> extends RingQueueFields<T> implements Queue<T> {
 				// System.out.println("end put:" + queue.getWriteCursor());
 			}
 		};
+		
+		final AtomicLong size = new AtomicLong(0);
 		Thread t2 = new Thread() {
 			@Override
 			public void run() {
-				int count = 0;
 				for (;;) {
 					String str = queue.poll();
 					if (str != null && str.length() > 0) {
 //						System.out.println(str + ":" + queue.getReadCursor());
-						count++;
+						size.incrementAndGet();
 						if (contains.contains(str)) {
 							System.out.println("WTF..." + str);
 						}
 						contains.add(str);
 					}
-					if (count >= COUNT) {
+					if (size.get() >= COUNT) {
+						// System.out.println("end get");
+						break;
+					}
+				}
+			}
+		};
+		Thread t3 = new Thread() {
+			@Override
+			public void run() {
+				for (;;) {
+					String str = queue.poll();
+					if (str != null && str.length() > 0) {
+//						System.out.println(str + ":" + queue.getReadCursor());
+						size.incrementAndGet();
+						if (contains.contains(str)) {
+							System.out.println("WTF..." + str);
+						}
+						contains.add(str);
+					}
+					if (size.get() >= COUNT) {
 						// System.out.println("end get");
 						break;
 					}
@@ -297,17 +308,19 @@ public class RingQueue<T> extends RingQueueFields<T> implements Queue<T> {
 		};
 		t1.start();
 		t2.start();
+		t3.start();
 
 		try {
 			t1.join();
 			t2.join();
+			t3.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		long end = System.currentTimeMillis();
 		System.out.println("total: " + (end - start));
 
-		/*
+		
 		 * Thread t[] = new Thread[10]; for (int i = 0; i<10;i++) { final int
 		 * index = i; t[i] = new Thread() {
 		 * 
@@ -318,6 +331,7 @@ public class RingQueue<T> extends RingQueueFields<T> implements Queue<T> {
 		 * (InterruptedException e) { e.printStackTrace(); } }
 		 * 
 		 * System.out.println(queue.getWriteCursor());
-		 */
+		 
 	}
 }
+*/

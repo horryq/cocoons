@@ -5,6 +5,8 @@
  */
 package com.cocoons.util;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import sun.misc.Unsafe;
 
 class LvPadding {
@@ -121,31 +123,48 @@ public class Sequence extends RvPadding {
 	 * */
 	public static void main(String[] args) {
 		final Sequence seq = new Sequence(0L);
-		final int COUNT = 100000;
-		Runnable r = new Runnable() {
-
-			@Override
-			public void run() {
-				for (int i = 0; i < COUNT; i++) {
-					seq.incrementAndGet();
-				}
-			}
-		};
-
-		Thread t[] = new Thread[10];
-		for (int i = 0; i < 10; i++) {
-			t[i] = new Thread(r);
-			t[i].start();
+		// final int COUNT = 100000;
+		// Runnable r = new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		// for (int i = 0; i < COUNT; i++) {
+		// seq.incrementAndGet();
+		// }
+		// }
+		// };
+		//
+		// Thread t[] = new Thread[10];
+		// for (int i = 0; i < 10; i++) {
+		// t[i] = new Thread(r);
+		// t[i].start();
+		// }
+		//
+		// for (int i = 0; i < 10; i++) {
+		// try {
+		// t[i].join();
+		// } catch (InterruptedException e) {
+		// e.printStackTrace();
+		// }
+		// }
+		//
+		// System.out.println(seq.get());
+		final int COUNT = 1000000;
+		long start, end;
+		AtomicLong al = new AtomicLong(0L);
+		start = System.currentTimeMillis();
+		for (int i = 0; i < COUNT; i++) {
+			al.incrementAndGet();
 		}
-
-		for (int i = 0; i < 10; i++) {
-			try {
-				t[i].join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		end = System.currentTimeMillis();
+		System.out.println("Atom:" + (end - start));
+		
+		start = System.currentTimeMillis();
+		for (int i = 0; i < COUNT; i++) {
+			seq.incrementAndGet();
 		}
+		end = System.currentTimeMillis();
+		System.out.println("Seq:" + (end - start));
 
-		System.out.println(seq.get());
 	}
 }
