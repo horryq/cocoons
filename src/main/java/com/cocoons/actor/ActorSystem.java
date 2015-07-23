@@ -72,6 +72,7 @@ public class ActorSystem {
 	}
 
 	private boolean isLocalActor(String name) {
+		// TODO optimize... 采用数字ID,第一位表示本地还是远程服务,这样只要做与运算就可以判断
 		final String systemNamePrefix = MessageFormat
 				.format("{0}:", systemName);
 		return name.startsWith(systemNamePrefix);
@@ -123,7 +124,8 @@ public class ActorSystem {
 	public String getSid() {
 //		return MessageFormat.format("{0}:{1}", systemName,
 //				sessionIndex.incrementAndGet());
-		return sessionIndex.incrementAndGet() + "";
+//		return sessionIndex.incrementAndGet() + "";
+		return "";
 	}
 
 	public void startHarborService(int port) {

@@ -34,11 +34,14 @@ public class FibTest {
 			}
 
 			public void startCount() {
+				long s = System.currentTimeMillis();
+				int mask = actorcount - 1;
 				for (int i = 0; i < COUNT; i++) {
-					refs[i & (actorcount - 1)].send(getSelfName(),
+					refs[i & mask].send(getSelfName(),
 							new MessageEntity("fib", 10));
 				}
-				// System.out.println("start end....");
+				long e = System.currentTimeMillis();
+				 System.out.println("start end...." + (e - s));
 			}
 		});
 
