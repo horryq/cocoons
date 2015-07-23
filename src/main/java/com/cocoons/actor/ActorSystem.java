@@ -2,11 +2,11 @@ package com.cocoons.actor;
 
 import java.text.MessageFormat;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.cocoons.harbor.HarborServer;
 
@@ -18,6 +18,8 @@ public class ActorSystem {
 	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
 	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
 	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+
+	private AtomicLong sessionIndex = new AtomicLong(0L);
 
 	private String systemName;
 	private String harborName;
@@ -32,14 +34,13 @@ public class ActorSystem {
 				// System.out.println("dispatch in "
 				// + Thread.currentThread().getId());
 				Actor actor = actors.take();
-				try {
-					if (actor != null) {
-						actor.dispatch();
-					}
-				} finally {
-					actors.add(actor);
+				// try {
+				if (actor != null) {
+					actor.dispatch();
 				}
-				// TODO ... 当所有actor的邮箱都为空的时候，这里会空转，待判断是否会造成CPU负载空高.
+				// } finally {
+				// actors.add(actor);
+				// }
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -55,7 +56,7 @@ public class ActorSystem {
 
 		actor.setContext(name, this);
 		actorsMap.put(name, actor);
-		actors.add(actor);
+		// actors.add(actor);
 		ActorRef ref = new ActorRef(name, this);
 		actorsRefMap.put(name, ref);
 		return ref;
@@ -88,6 +89,10 @@ public class ActorSystem {
 		return ref;
 	}
 
+	private void addActorToGlobalQueue(Actor actor) {
+		actors.add(actor);
+	}
+
 	public void sendMsgTo(String name, ActorMessage msg) {
 		if (isLocalActor(name)) { // local message
 			Actor actor = actorsMap.get(name);
@@ -95,6 +100,11 @@ public class ActorSystem {
 				throw new IllegalStateException(name + " actor not exist.");
 			}
 			actor.addMessage(msg);
+			if (!actor.isInGlobalQueue()) {
+				if (actor.putToGlobalQueue(false, true)) {
+					addActorToGlobalQueue(actor);
+				}
+			}
 		} else { // remote message
 			Actor harbor = actorsMap.get(harborName);
 			if (harbor == null) {
@@ -102,11 +112,18 @@ public class ActorSystem {
 			}
 			harbor.addMessage(ActorMessage.wrapHarborMessage(harborName,
 					"sendRemote", msg));
+			if (!harbor.isInGlobalQueue()) {
+				if (harbor.putToGlobalQueue(false, true)) {
+					addActorToGlobalQueue(harbor);
+				}
+			}
 		}
 	}
 
 	public String getSid() {
-		return UUID.randomUUID().toString();
+//		return MessageFormat.format("{0}:{1}", systemName,
+//				sessionIndex.incrementAndGet());
+		return sessionIndex.incrementAndGet() + "";
 	}
 
 	public void startHarborService(int port) {

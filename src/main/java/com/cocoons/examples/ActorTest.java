@@ -18,6 +18,13 @@ public class ActorTest {
 						new MessageEntity("pong", "Pong", "..."));
 			}
 		});
+		ActorRef ping2 = system.actor("ping2", new Actor() {
+			public void ping(String abc, String def) {
+				System.out.println(abc + def);
+				getSender().send(getSelfName(),
+						new MessageEntity("pong", "Pong2", "..."));
+			}
+		});
 		ActorRef pong = system.actor("pong", new Actor() {
 			public void pong(String abc, String def) {
 				System.out.println(abc + def);
@@ -27,6 +34,7 @@ public class ActorTest {
 		});
 
 		ping.send(pong.getName(), new MessageEntity("ping", "Ping", "..."));
+		ping2.send(pong.getName(), new MessageEntity("ping", "Ping2", "..."));
 
 		system.start(4);
 	}

@@ -25,7 +25,7 @@ public class FibSingleTest {
 
 	public static void cacl(int num) {
 		for (int i = 0; i < num; i++) {
-			fib(25);
+			fib(10);
 		}
 	}
 

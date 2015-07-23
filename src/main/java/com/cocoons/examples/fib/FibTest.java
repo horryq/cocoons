@@ -36,7 +36,7 @@ public class FibTest {
 			public void startCount() {
 				for (int i = 0; i < COUNT; i++) {
 					refs[i & (actorcount - 1)].send(getSelfName(),
-							new MessageEntity("fib", 25));
+							new MessageEntity("fib", 10));
 				}
 				// System.out.println("start end....");
 			}

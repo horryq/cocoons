@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 
@@ -17,7 +18,7 @@ public abstract class Actor {
 	private static final Logger logger = Logger.getLogger(Actor.class);
 
 	private String name;
-	private LinkedBlockingQueue<ActorMessage> msgList = new LinkedBlockingQueue<>();
+	private ConcurrentLinkedQueue<ActorMessage> msgList = new ConcurrentLinkedQueue<>();
 	private Map<String, Method> methodMap = new HashMap<>();
 
 	private ActorSystem system;
@@ -25,6 +26,8 @@ public abstract class Actor {
 	private boolean finished = false;
 
 	private ActorMessage lastMessage;
+
+	private AtomicBoolean inGlobalQueue = new AtomicBoolean(false);
 
 	public void setContext(String name, ActorSystem system) {
 		this.name = name;
@@ -50,11 +53,19 @@ public abstract class Actor {
 		return system.getActorRefOf(name);
 	}
 
+	public boolean isInGlobalQueue() {
+		return inGlobalQueue.get();
+	}
+
+	public boolean putToGlobalQueue(boolean expect, boolean update) {
+		return inGlobalQueue.compareAndSet(expect, update);
+	}
+
 	public final boolean dispatch() {
 		boolean hasMessage = false;
-		int count = msgList.size();
-		for (int i = 0; i < count; i++) {
-			ActorMessage msg = null;
+//		int count = msgList.size();
+		ActorMessage msg = null;
+		for (;;) {
 			if ((msg = msgList.poll()) != null) {
 				hasMessage = true;
 				lastMessage = msg;
@@ -112,6 +123,14 @@ public abstract class Actor {
 					e.printStackTrace();
 				}
 			} else {
+				if (putToGlobalQueue(true, false)) {
+					msg = msgList.peek();
+					if (msg != null && putToGlobalQueue(false, true)) {
+						continue;
+					}
+				} else {
+					logger.error("WWWTTTFFF...");
+				}
 				break;
 			}
 		}
