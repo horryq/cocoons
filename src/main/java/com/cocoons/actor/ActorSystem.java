@@ -122,10 +122,10 @@ public class ActorSystem {
 	}
 
 	public String getSid() {
-//		return MessageFormat.format("{0}:{1}", systemName,
-//				sessionIndex.incrementAndGet());
+		return MessageFormat.format("{0}:{1}", systemName,
+				sessionIndex.incrementAndGet());
 //		return sessionIndex.incrementAndGet() + "";
-		return "";
+//		return "";
 	}
 
 	public void startHarborService(int port) {
