@@ -8,6 +8,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.log4j.Logger;
+
 import com.cocoons.harbor.HarborServer;
 
 /**
@@ -15,9 +17,12 @@ import com.cocoons.harbor.HarborServer;
  * @author qinguofeng
  */
 public class ActorSystem {
+	private static final Logger logger = Logger.getLogger(ActorSystem.class);
+
 	private Map<String, ActorRef> actorsRefMap = new ConcurrentHashMap<>();
 	private Map<String, Actor> actorsMap = new ConcurrentHashMap<>();
 	private LinkedBlockingQueue<Actor> actors = new LinkedBlockingQueue<>();
+	private Map<String, ActorFutureTask<Object>> responseMap = new ConcurrentHashMap<>();
 
 	private AtomicLong sessionIndex = new AtomicLong(0L);
 
@@ -31,16 +36,10 @@ public class ActorSystem {
 	private void doWork() {
 		for (;;) {
 			try {
-				// System.out.println("dispatch in "
-				// + Thread.currentThread().getId());
 				Actor actor = actors.take();
-				// try {
 				if (actor != null) {
 					actor.dispatch();
 				}
-				// } finally {
-				// actors.add(actor);
-				// }
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -96,14 +95,27 @@ public class ActorSystem {
 
 	public void sendMsgTo(String name, ActorMessage msg) {
 		if (isLocalActor(name)) { // local message
-			Actor actor = actorsMap.get(name);
-			if (actor == null) {
-				throw new IllegalStateException(name + " actor not exist.");
-			}
-			actor.addMessage(msg);
-			if (!actor.isInGlobalQueue()) {
-				if (actor.putToGlobalQueue(false, true)) {
-					addActorToGlobalQueue(actor);
+			if (msg.getType() == ActorMessage.TYPE.TRESP) {
+				ActorFutureTask<Object> future = responseMap.remove(msg
+						.getSid());
+				if (future != null) {
+					future.finish(msg.getMsg());
+					return;
+				} else {
+					logger.error(msg.getReceiver()
+							+ " missing response future for sid "
+							+ msg.getSid() + " with sender " + msg.getSender());
+				}
+			} else {
+				Actor actor = actorsMap.get(name);
+				if (actor == null) {
+					throw new IllegalStateException(name + " actor not exist.");
+				}
+				actor.addMessage(msg);
+				if (!actor.isInGlobalQueue()) {
+					if (actor.putToGlobalQueue(false, true)) {
+						addActorToGlobalQueue(actor);
+					}
 				}
 			}
 		} else { // remote message
@@ -121,11 +133,22 @@ public class ActorSystem {
 		}
 	}
 
+	public <V> ActorFutureTask<V> sendMsgToSync(String name, ActorMessage msg) {
+		String sid = getSid();
+		msg.setSid(sid);
+		ActorFutureTask<V> future = ActorFutureTask.future();
+		responseMap.put(sid, (ActorFutureTask<Object>) future);
+
+		sendMsgTo(name, msg);
+
+		return future;
+	}
+
 	public String getSid() {
 		return MessageFormat.format("{0}:{1}", systemName,
 				sessionIndex.incrementAndGet());
-//		return sessionIndex.incrementAndGet() + "";
-//		return "";
+		// return sessionIndex.incrementAndGet() + "";
+		// return "";
 	}
 
 	public void startHarborService(int port) {

@@ -11,6 +11,9 @@ public class ActorMessage {
 	}
 
 	private int type = TYPE.TREQ;
+	/**
+	 * 只有需要响应的请求才会有sid, 相当于请求的session id, 用于回应方找到对应的请求者
+	 * */
 	private String sid;
 
 	private String sender;

@@ -129,7 +129,7 @@ public abstract class Actor {
 						continue;
 					}
 				} else {
-					logger.error("WWWTTTFFF...");
+					logger.error("WWWWWWWWARING...");
 				}
 				break;
 			}
@@ -143,5 +143,9 @@ public abstract class Actor {
 
 	public final void giveBackMessage() {
 		msgList.add(lastMessage);
+	}
+	
+	public final String getResponseSid() {
+		return lastMessage.getSid();
 	}
 }

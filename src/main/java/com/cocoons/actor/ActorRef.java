@@ -1,5 +1,7 @@
 package com.cocoons.actor;
 
+import java.util.concurrent.Future;
+
 import com.cocoons.actor.ActorMessage.TYPE;
 
 /**
@@ -21,12 +23,21 @@ public class ActorRef {
 	}
 
 	public void send(String sender, MessageEntity msg) {
-		ActorMessage actorMsg = new ActorMessage(TYPE.TREQ, system.getSid(),
-				sender, name, msg);
+		ActorMessage actorMsg = new ActorMessage(TYPE.TREQ, "", sender, name,
+				msg);
 		system.sendMsgTo(name, actorMsg);
 	}
 
-	public void response() {
-		// TODO ...
+	public <V> Future<V> call(String sender, MessageEntity msg) {
+		ActorMessage actorMsg = new ActorMessage(TYPE.TREQ, "", sender, name,
+				msg);
+		return system.sendMsgToSync(name, actorMsg);
+	}
+
+	public void response(String sid, String sender, Object msg) {
+		MessageEntity entity = new MessageEntity("pong", msg);
+		ActorMessage actorMsg = new ActorMessage(TYPE.TRESP, sid, sender, name,
+				entity);
+		system.sendMsgTo(name, actorMsg);
 	}
 }
