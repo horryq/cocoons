@@ -95,11 +95,11 @@ public class ActorSystem {
 
 	public void sendMsgTo(String name, ActorMessage msg) {
 		if (isLocalActor(name)) { // local message
-			if (msg.getType() == ActorMessage.TYPE.TRESP) {
+			if (msg.getType() == ActorMessage.TYPE.TRESP) { // response msg
 				ActorFutureTask<Object> future = responseMap.remove(msg
 						.getSid());
 				if (future != null) {
-					future.finish(msg.getMsg());
+					future.finish(msg.getMsg().getParams()[0]);
 					return;
 				} else {
 					logger.error(msg.getReceiver()

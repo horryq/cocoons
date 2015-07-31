@@ -8,19 +8,19 @@ import java.util.concurrent.FutureTask;
  */
 public class ActorFutureTask<V> extends FutureTask<V> {
 
-	private ActorFutureCallable _cb;
+	private ActorFutureCallable<V> _cb;
 
-	public ActorFutureTask(ActorFutureCallable callable) {
+	public ActorFutureTask(ActorFutureCallable<V> callable) {
 		super(callable);
 		_cb = callable;
 	}
 
 	public static <V> ActorFutureTask<V> future() {
-		return new ActorFutureTask<>(new ActorFutureCallable());
+		return new ActorFutureTask<>(new ActorFutureCallable<>());
 	}
 
-	public void finish(MessageEntity msg) {
-		_cb.setResult(msg.getParams()[0]);
+	public void finish(V v) {
+		_cb.setResult(v);
 
 		run();
 	}
