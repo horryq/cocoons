@@ -8,6 +8,8 @@ public class ActorMessage {
 	public static final class TYPE {
 		public static final int TREQ = 0; // 请求
 		public static final int TRESP = 1; // 响应
+		public static final int TCALL = 2; // 请求，带有回调
+		public static final int TCALLRESP = 3; // 回复请求
 	}
 
 	private int type = TYPE.TREQ;

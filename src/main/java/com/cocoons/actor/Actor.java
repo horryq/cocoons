@@ -20,6 +20,7 @@ public abstract class Actor {
 	private String name;
 	private ConcurrentLinkedQueue<ActorMessage> msgList = new ConcurrentLinkedQueue<>();
 	private Map<String, Method> methodMap = new HashMap<>();
+	private Map<String, ActorCallback> callbackMap = new HashMap<>();
 
 	private ActorSystem system;
 
@@ -72,55 +73,67 @@ public abstract class Actor {
 				MessageEntity entity = msg.getMsg();
 				String funcName = entity.getFuncName();
 				Object[] params = entity.getParams();
-				Method method = methodMap.get(funcName);
-				try {
-					if (method == null) {
-						List<Class<?>> clazzList = new ArrayList<Class<?>>();
-						if (params != null) {
-							for (Object obj : params) {
-								clazzList.add(obj.getClass());
-							}
-						}
-						Class<?>[] clazz = clazzList.size() <= 0 ? null
-								: clazzList.toArray(new Class<?>[0]);
-						// TODO ... optimize...
-						try {
-							method = getClass().getDeclaredMethod(funcName,
-									clazz);
-						} catch (NoSuchMethodException e) {
-							// logger.warn("no method match accurate with name "
-							// + funcName + " in " + getClass().getName());
-						}
+				if (msg.getType() == ActorMessage.TYPE.TCALLRESP) { // 执行回调
+					ActorCallback cb = callbackMap.remove(msg.getSid());
+					if (cb != null) {
+						cb.onResp(params);
+					} else {
+						throw new IllegalStateException(
+								"No Callback for named " + funcName
+										+ " in class "
+										+ this.getClass().getName());
+					}
+				} else {
+					Method method = methodMap.get(funcName);
+					try {
 						if (method == null) {
-							Method[] ms = getClass().getMethods();
-							if (ms != null) {
-								for (Method m : ms) {
-									if (m.getName().equals(funcName)) {
-										method = m;
-										break;
+							List<Class<?>> clazzList = new ArrayList<Class<?>>();
+							if (params != null) {
+								for (Object obj : params) {
+									clazzList.add(obj.getClass());
+								}
+							}
+							Class<?>[] clazz = clazzList.size() <= 0 ? null
+									: clazzList.toArray(new Class<?>[0]);
+							// TODO ... optimize...
+							try {
+								method = getClass().getDeclaredMethod(funcName,
+										clazz);
+							} catch (NoSuchMethodException e) {
+								// logger.warn("no method match accurate with name "
+								// + funcName + " in " + getClass().getName());
+							}
+							if (method == null) {
+								Method[] ms = getClass().getMethods();
+								if (ms != null) {
+									for (Method m : ms) {
+										if (m.getName().equals(funcName)) {
+											method = m;
+											break;
+										}
 									}
 								}
 							}
+							if (method == null) {
+								throw new IllegalStateException(
+										"No Function named " + funcName
+												+ " in class "
+												+ this.getClass().getName());
+							} else {
+								methodMap.put(funcName, method);
+							}
 						}
-						if (method == null) {
-							throw new IllegalStateException(
-									"No Function named " + funcName
-											+ " in class "
-											+ this.getClass().getName());
-						} else {
-							methodMap.put(funcName, method);
-						}
+						method.setAccessible(true);
+						method.invoke(this, params);
+					} catch (SecurityException e) {
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
 					}
-					method.setAccessible(true);
-					method.invoke(this, params);
-				} catch (SecurityException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
 				}
 			} else {
 				if (putToGlobalQueue(true, false)) {
@@ -147,5 +160,9 @@ public abstract class Actor {
 	
 	public final String getResponseSid() {
 		return lastMessage.getSid();
+	}
+	
+	public void addCallback(String sid, ActorCallback cb) {
+		callbackMap.put(sid, cb);
 	}
 }

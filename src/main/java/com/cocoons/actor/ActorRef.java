@@ -28,16 +28,32 @@ public class ActorRef {
 		system.sendMsgTo(name, actorMsg);
 	}
 
+	public void callWithCb(Actor sender, MessageEntity msg, ActorCallback cb) {
+		String sid = system.getSid();
+		ActorMessage actorMsg = new ActorMessage(TYPE.TCALL, sid,
+				sender.getSelfName(), name, msg);
+		sender.addCallback(sid, cb);
+		system.sendMsgTo(name, actorMsg);
+	}
+
 	public <V> Future<V> call(String sender, MessageEntity msg) {
 		ActorMessage actorMsg = new ActorMessage(TYPE.TREQ, "", sender, name,
 				msg);
 		return system.sendMsgToSync(name, actorMsg);
 	}
 
-	public void response(String sid, String sender, Object msg) {
-		MessageEntity entity = new MessageEntity("pong", msg);
+	public void response(String sid, String sender, MessageEntity msg) {
 		ActorMessage actorMsg = new ActorMessage(TYPE.TRESP, sid, sender, name,
-				entity);
+				msg);
+		system.sendMsgTo(name, actorMsg);
+	}
+
+	/**
+	 * 回应带有Callback的消息
+	 * */
+	public void responseCb(String sid, String sender, MessageEntity msg) {
+		ActorMessage actorMsg = new ActorMessage(TYPE.TCALLRESP, sid, sender,
+				name, msg);
 		system.sendMsgTo(name, actorMsg);
 	}
 }

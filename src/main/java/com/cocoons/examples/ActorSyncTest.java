@@ -32,7 +32,7 @@ public class ActorSyncTest {
 		ActorRef pong = system.actor("pong", new Actor() {
 			public void pong(String abc, String def) {
 				System.out.println(abc + ":" + def);
-				getSender().response(getResponseSid(), getSelfName(), "ping");
+				getSender().response(getResponseSid(), getSelfName(), new MessageEntity("ping", "Ping", "..."));
 			}
 		});
 

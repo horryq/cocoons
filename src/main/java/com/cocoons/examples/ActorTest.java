@@ -14,19 +14,31 @@ public class ActorTest {
 		ActorRef ping = system.actor("ping", new Actor() {
 			public void ping(String abc, String def) {
 				System.out.println(abc + def);
-				getSender().send(getSelfName(),
-						new MessageEntity("pong", "Pong", "..."));
+//				getSender().send(getSelfName(),
+//						new MessageEntity("pong", "Pong", "..."));
+				getSender().callWithCb(this, new MessageEntity("pong", "Pong", "..."), (params)->{
+					System.out.println("in cb...");
+					System.out.println(params.length + ":" + params[0] + ":" + params[1]);
+				}); 
 			}
 		});
 		ActorRef ping2 = system.actor("ping2", new Actor() {
 			public void ping(String abc, String def) {
 				System.out.println(abc + def);
 				getSender().send(getSelfName(),
-						new MessageEntity("pong", "Pong2", "..."));
+						new MessageEntity("pong2", "Pong2", "..."));
 			}
 		});
 		ActorRef pong = system.actor("pong", new Actor() {
 			public void pong(String abc, String def) {
+				System.out.println(abc + def);
+//				getSender().send(getSelfName(),
+//						new MessageEntity("ping", "Ping", "..."));
+				getSender().responseCb(getResponseSid(), getSelfName(),
+						new MessageEntity("ping", "Ping", "..."));
+			}
+			
+			public void pong2(String abc, String def) {
 				System.out.println(abc + def);
 				getSender().send(getSelfName(),
 						new MessageEntity("ping", "Ping", "..."));
@@ -34,7 +46,7 @@ public class ActorTest {
 		});
 
 		ping.send(pong.getName(), new MessageEntity("ping", "Ping", "..."));
-		ping2.send(pong.getName(), new MessageEntity("ping", "Ping2", "..."));
+		pong.send(ping2.getName(), new MessageEntity("pong2", "Pong2", "..."));
 
 		system.start(4);
 	}
